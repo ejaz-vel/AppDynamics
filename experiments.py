@@ -52,7 +52,7 @@ def findBestCluster(useKMeansPP = False, useTFIDF = True):
 		clusterSimilarity.append(currentSim)
 		
 		# We have found the optimal number of clusters once, similarity of these clusters start increasing very slowly
-		if currentSim - previousSim < 0.01:
+		if currentSim - previousSim < 0.015:
 			diff = currentSim - previousSim
 			if diff > 0:
 				print "Optimal Number of Clusters: " + str(clusterSize)

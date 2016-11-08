@@ -59,8 +59,8 @@ def generateGlobalWordFrequency(inputFileName):
 					termDict[lowercasetoken] = 1
 	inputFile.close()
 	
-	wordDfFile = open("word_df.txt", "w")
-	wordDictFile = open("word_dict.txt", "w")
+	wordDfFile = open("processedData/word_df.txt", "w")
+	wordDictFile = open("processedData/word_dict.txt", "w")
 	wordId = 0
 	termIDs = {}
 	for word in termDict:
@@ -74,7 +74,7 @@ def generateGlobalWordFrequency(inputFileName):
 
 def generateDocumentVectors(inputFileName, termIDs):
 	inputFile = open(inputFileName)
-	outputFile = open("documentVectors.txt", "w")
+	outputFile = open("processedData/documentVectors.txt", "w")
 	stopWords = getStopWords()
 	for line in iter(inputFile):
 		processedLine = processDocument(line)
