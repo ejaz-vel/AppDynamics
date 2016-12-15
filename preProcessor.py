@@ -9,10 +9,10 @@ def preprocessLogs(inputFileName, outputFileName):
 	for line in iter(inputLogFile):
 		if line.strip().startswith('\"'):
 			flag = True
-		
+
 		if flag is True:
 			log.append(line.strip())
-		
+
 		if line.strip().endswith('\"'):
 			logText = ' '.join(log)
 			outputFile.write(str(docCount) + "\t" + logText + '\n')
@@ -31,7 +31,7 @@ def getStopWords():
 		stopwords.add(line.strip())
 	f.close()
 	return stopwords
-	
+
 def isValidToken(token, stopWords):
 	# TODO: Experiment with this
 	return not (len(token) < 2 or (token in stopWords) or token.isdigit())
@@ -39,7 +39,8 @@ def isValidToken(token, stopWords):
 def processDocument(doc):
 	# Tokenize the text.
 	# TODO: Find various ways to tokenize text
-	return re.sub('[^a-zA-Z]+', ' ', doc)
+	print
+        return re.sub('[^a-zA-Z]+', ' ', doc)
 
 def generateGlobalWordFrequency(inputFileName):
 	termDict = {}
@@ -58,7 +59,7 @@ def generateGlobalWordFrequency(inputFileName):
 				else:
 					termDict[lowercasetoken] = 1
 	inputFile.close()
-	
+
 	wordDfFile = open("processedData/word_df.txt", "w")
 	wordDictFile = open("processedData/word_dict.txt", "w")
 	wordId = 0
@@ -87,7 +88,7 @@ def generateDocumentVectors(inputFileName, termIDs):
 					documentVector[lowercasetoken] = documentVector[lowercasetoken] + 1
 				else:
 					documentVector[lowercasetoken] = 1
-					
+
 		tokenCount = []
 		for token in documentVector:
 			tokenCount.append(str(termIDs[token]) + ":" + str(documentVector[token]))
@@ -96,5 +97,6 @@ def generateDocumentVectors(inputFileName, termIDs):
 	outputFile.close()
 
 preprocessLogs("data/log.csv", "data/documents.txt")
+#preprocessLogs("data/test.csv", "data/documents_test.txt")
 termIDs = generateGlobalWordFrequency("data/documents.txt")
 generateDocumentVectors("data/documents.txt", termIDs)

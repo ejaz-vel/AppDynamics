@@ -4,7 +4,8 @@ import numpy as np
 import math
 
 dfFile = 'processedData/word_df.txt'
-docFile = 'processedData/documentVectors.txt'
+docFile = 'processedData/documentVectors_test.txt'
+#docFile = 'processedData/documentVectors.txt'
 
 # Count the number of lines in the DocumentFrequency(df) file
 def getNumUniqueWords():
@@ -22,12 +23,13 @@ def getNumDocuments():
 	for line in iter(f):
 		count += 1
 	f.close()
+        print "count ", count
 	return count
 
 def updateProbDisributionUsingSimilarity(documents, centroids):
 	probDistribution = []
 	runningSum = 0.0
-	
+
 	for n in range(len(documents)):
 		maxSim = 0.0000001
 		# Find the cluster with whom the documents n has maximum similarity
@@ -37,14 +39,14 @@ def updateProbDisributionUsingSimilarity(documents, centroids):
 				sim = 0.0000001
 			else:
 				sim = sim.data[0]
-				
+
 			if maxSim < sim:
 				maxSim = sim
 		# Take invserse of the maximum Similarity and update the probability distribution
 		# This makes sure documents with lower similarity have higher probability of being sampled
 		probDistribution.append(1.0/maxSim)
 		runningSum += 1.0/maxSim
-		
+
 	probDistribution[:] = [x / runningSum for x in probDistribution]
 	return probDistribution
 
@@ -83,7 +85,7 @@ def initCentroidKMeanspp(documents, numCentroid, useSimMetric):
 		# Add this document vector to the centroids list. In this case the centroids will be non-sparse.
 		centroids.append(documents[docID])
 		print("Initialized centroid: " + str(k+1))
-		
+
 		if useSimMetric is True:
 			probDistribution = updateProbDisributionUsingSimilarity(documents, centroids)
 		else:
@@ -107,6 +109,8 @@ def getInverseDocumentFrequencyMap(numDocuments):
 	f = open(dfFile)
 	for line in iter(f):
 		df = line.split(":")
+                if(df[0]=='1873'):
+                    print "found ", df[0],"count",int(df[1]), numDocuments
 		dfMap[df[0]] = numDocuments / int(df[1])
 	return dfMap
 
@@ -135,7 +139,8 @@ def getDocumentVectors(vectorSize):
 def getDocumentVectorsWithTFIDF(vectorSize):
 	numDocuments = getNumDocuments()
 	idf = getInverseDocumentFrequencyMap(numDocuments)
-	
+
+        #print "idf", idf['1873']
 	f = open(docFile)
 	documents = []
 	for line in iter(f):
@@ -147,6 +152,8 @@ def getDocumentVectorsWithTFIDF(vectorSize):
 			row.append(0)
 			col.append(int(word.split(':')[0]))
 			# Use only the TF-IDF value to weigh each term in the document
+                        if( idf[word.split(':')[0]] <=0):
+                            print "Negative or zero", word, word.split(':'), idf[word.split(':')[0]]
 			data.append(int(word.split(':')[1]) * math.log(idf[word.split(':')[0]]))
 		# Create the sparse document vector using the CSR_matrix data structure
 		spVector = csr_matrix((data, (row, col)), shape=(1, vectorSize))
@@ -177,12 +184,12 @@ def printDocumentClusters(clusterAssignment, outputFileName):
 def updateCentroid(documents, clusterAssignment, numClusters, vectorSize):
 	centroidSum = np.zeros(shape=(numClusters,vectorSize))
 	centroidCount = [0] * numClusters
-		
+
 	for n in range(len(clusterAssignment)):
 		cluster = clusterAssignment[n]
 		centroidSum[cluster] += documents[n]
 		centroidCount[cluster] += 1
-	
+
 	centroids = []
 	for k in range(numClusters):
 		if centroidCount[k] > 0:
@@ -193,7 +200,7 @@ def updateCentroid(documents, clusterAssignment, numClusters, vectorSize):
 			centroidVector = np.random.random((1, vectorSize))
 		# Normalize the centorid before updating the centroids list
 		centroids.append(centroidVector * 1/np.linalg.norm(centroidVector))
-	
+
 	return centroids
 
 # Find the similarity of the documents with the cluster it is assigned to
@@ -201,12 +208,12 @@ def computeClusteringScore(clusterAssignment, centroids, documents):
 	#Calculate Average Similarity of each Cluster
 	centroidCount = [0] * len(centroids)
 	centroidSimilarityCount = [0] * len(centroids)
-	
+
 	for n in range(len(clusterAssignment)):
 		cluster = clusterAssignment[n]
 		centroidCount[cluster] += 1
 		centroidSimilarityCount[cluster] += computeSimilarity(documents[n], centroids[cluster])
-	
+
 	total = 0.0
 	for k in range(len(centroids)):
 		if centroidCount[k] == 0:
@@ -223,30 +230,31 @@ def computeClusteringScore(clusterAssignment, centroids, documents):
 # useTFIDFWeight: This decides whether we need to use the TF-IDF weight or not while creating the document vector
 # useKMeanspp: This decides whether we need to use KMeans++ or not to initialize the clusters
 # useSimMetric: If we are using KMeans++, this parameter decides whether to use distance or similarity metric
+
 def findClusterAssignment(numClusters, useTFIDFWeight=False, useKMeanspp=False, useSimMetric=False):
 	vectorSize = getNumUniqueWords()
 	documents = []
 	centroids = []
-	
+
 	if useTFIDFWeight is True:
 		print("Using TF-IDF weights for Document Vectors")
 		documents = getDocumentVectorsWithTFIDF(vectorSize)
 	else:
 		print("Using TF weights for Document Vectors")
 		documents = getDocumentVectors(vectorSize)
-	
+
 	if useKMeanspp == True:
 		print("Using KMeans++ to initialize centroids")
 		centroids = initCentroidKMeanspp(documents, numClusters, useSimMetric)
 	else:
 		print("Randomly initializing centroids")
 		centroids = randomInitCentroid(numClusters, vectorSize)
-		
+
 	numDocs = len(documents)
 	previousClusterAssignment = [-1] * numDocs
 	clusterAssignment = [0] * numDocs
-	
-	numIterations = 0
+
+	numIterations = -1
 	print("Running Loyd's Algorithm for clustering")
 	while ( np.array_equal(previousClusterAssignment,clusterAssignment) == False):
 		print("Iteration: " + str(numIterations))
@@ -263,5 +271,9 @@ def findClusterAssignment(numClusters, useTFIDFWeight=False, useKMeanspp=False, 
 		numIterations += 1
 		centroids = updateCentroid(documents, clusterAssignment, numClusters, vectorSize)
 	similarity = computeClusteringScore(clusterAssignment, centroids, documents)
-	return clusterAssignment, similarity
-	
+	return clusterAssignment, centroids, similarity
+
+
+if __name__ == "__main__":
+    ca,centroids,simi = findClusterAssignment(3,True,True, True)
+    printDocumentClusters(ca, 'output/assign.txt')
